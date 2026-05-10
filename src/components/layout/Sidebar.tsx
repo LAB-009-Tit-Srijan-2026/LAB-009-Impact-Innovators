@@ -10,14 +10,15 @@ import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/dashboard',  label: 'Dashboard',     icon: LayoutDashboard, emoji: '🏠' },
-  { href: '/plan',       label: 'Trip Banao',     icon: Map,             emoji: '🗺️' },
-  { href: '/assistant',  label: 'AI Dost',        icon: Bot,             emoji: '🤖' },
-  { href: '/trips',      label: 'Meri Trips',     icon: Briefcase,       emoji: '✈️' },
-  { href: '/bookings',   label: 'Bookings',       icon: CalendarCheck,   emoji: '📋' },
-  { href: '/alerts',     label: 'Alerts',         icon: Bell,            emoji: '🔔' },
-  { href: '/community',  label: 'Community',      icon: Users,           emoji: '👥' },
-  { href: '/settings',   label: 'Settings',       icon: Settings,        emoji: '⚙️' },
+  { href: '/dashboard',      label: 'Dashboard',        icon: LayoutDashboard, emoji: '🏠' },
+  { href: '/plan',           label: 'Trip Banao',        icon: Map,             emoji: '🗺️' },
+  { href: '/assistant',      label: 'AI Dost',           icon: Bot,             emoji: '🤖' },
+  { href: '/trips',          label: 'Meri Trips',        icon: Briefcase,       emoji: '✈️' },
+  { href: '/bookings',       label: 'Bookings',          icon: CalendarCheck,   emoji: '📋' },
+  { href: '/alerts',         label: 'Alerts',            icon: Bell,            emoji: '🔔' },
+  { href: '/community',      label: 'Community',         icon: Users,           emoji: '👥' },
+  { href: '/tourism-stats',  label: 'Tourism Stats',     icon: Plane,           emoji: '📊' },
+  { href: '/settings',       label: 'Settings',          icon: Settings,        emoji: '⚙️' },
 ];
 
 export function Sidebar() {

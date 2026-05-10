@@ -1,19 +1,29 @@
 'use client';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { destinations } from '@/lib/dummy-data';
-import { Sparkles, ChevronRight, Star } from 'lucide-react';
+import { Sparkles, ChevronRight, Star, Map, List } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'next/navigation';
 import { formatCurrencyFull } from '@/lib/utils';
 import { indianCities, tripTypes } from '@/lib/dummy-data';
+
+const IndiaMap = dynamic(() => import('@/components/ui/IndiaMap'), { ssr: false,
+  loading: () => (
+    <div className="rounded-2xl bg-gray-100 animate-pulse flex items-center justify-center h-72">
+      <p className="text-gray-400 text-sm">Map load ho raha hai...</p>
+    </div>
+  ),
+});
 
 const steps = ['Destination', 'Dates & Budget', 'Preferences', 'Review'];
 
 export default function PlanPage() {
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
+  const [destView, setDestView] = useState<'grid' | 'map'>('grid');
   const { tripForm, setTripForm } = useAppStore();
   const router = useRouter();
 
@@ -58,40 +68,85 @@ export default function PlanPage() {
         >
           {step === 0 && (
             <div>
-              <h2 className="font-bold text-gray-800 text-lg mb-1">Kahan Jaana Hai? 🇮🇳</h2>
-              <p className="text-sm text-gray-500 mb-5">Ek ya zyada destinations chuniye</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {destinations.map((dest) => (
-                  <motion.div
-                    key={dest.id}
-                    whileHover={{ y: -2 }}
-                    onClick={() => setSelected(prev =>
-                      prev.includes(dest.id) ? prev.filter(id => id !== dest.id) : [...prev, dest.id]
-                    )}
-                    className={`relative rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
-                      selected.includes(dest.id) ? 'border-purple-500 shadow-lg shadow-purple-100' : 'border-transparent'
-                    }`}
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="font-bold text-gray-800 text-lg">Kahan Jaana Hai? 🇮🇳</h2>
+                  <p className="text-sm text-gray-500">Ek ya zyada destinations chuniye</p>
+                </div>
+                {/* Grid / Map toggle */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                  <button
+                    onClick={() => setDestView('grid')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${destView === 'grid' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}
                   >
-                    <div className="relative h-28">
-                      <img src={dest.image} alt={dest.name} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                      {selected.includes(dest.id) && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                          style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}>
-                          <span className="text-white text-xs font-bold">✓</span>
-                        </div>
+                    <List className="w-3.5 h-3.5" /> Grid
+                  </button>
+                  <button
+                    onClick={() => setDestView('map')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${destView === 'map' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}
+                  >
+                    <Map className="w-3.5 h-3.5" /> Map
+                  </button>
+                </div>
+              </div>
+
+              {selected.length > 0 && (
+                <div className="mb-4 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500">Selected:</span>
+                  {destinations.filter(d => selected.includes(d.id)).map(d => (
+                    <span key={d.id} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                      {d.name}
+                      <button onClick={() => setSelected(p => p.filter(id => id !== d.id))} className="hover:text-purple-900">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {destView === 'map' ? (
+                <IndiaMap
+                  destinations={destinations}
+                  selectedIds={selected}
+                  height="420px"
+                  onDestinationClick={(dest) =>
+                    setSelected(prev =>
+                      prev.includes(dest.id) ? prev.filter(id => id !== dest.id) : [...prev, dest.id]
+                    )
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {destinations.map((dest) => (
+                    <motion.div
+                      key={dest.id}
+                      whileHover={{ y: -2 }}
+                      onClick={() => setSelected(prev =>
+                        prev.includes(dest.id) ? prev.filter(id => id !== dest.id) : [...prev, dest.id]
                       )}
-                      <div className="absolute bottom-2 left-2">
-                        <p className="text-white text-xs font-bold leading-tight">{dest.name}</p>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-white/80 text-xs">{dest.rating}</span>
+                      className={`relative rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
+                        selected.includes(dest.id) ? 'border-purple-500 shadow-lg shadow-purple-100' : 'border-transparent'
+                      }`}
+                    >
+                      <div className="relative h-28">
+                        <img src={dest.image} alt={dest.name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                        {selected.includes(dest.id) && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                            style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}>
+                            <span className="text-white text-xs font-bold">✓</span>
+                          </div>
+                        )}
+                        <div className="absolute bottom-2 left-2">
+                          <p className="text-white text-xs font-bold leading-tight">{dest.name}</p>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <span className="text-white/80 text-xs">{dest.rating}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

@@ -96,6 +96,18 @@ function PostCard({ post, index }: { post: any; index: number }) {
 export default function CommunityPage() {
   const [search, setSearch] = useState('');
 
+  // Filter posts by caption, destination, user name, or tags
+  const filteredPosts = communityPosts.filter((post) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      post.caption.toLowerCase().includes(q) ||
+      post.destination.toLowerCase().includes(q) ||
+      post.user.name.toLowerCase().includes(q) ||
+      post.tags.some((tag: string) => tag.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <AppLayout>
       <div className="flex items-center justify-between mb-6">
@@ -124,10 +136,33 @@ export default function CommunityPage() {
               placeholder="Posts, destinations, travelers dhundho..."
               className="bg-transparent text-sm outline-none text-gray-600 placeholder-gray-400 w-full"
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-gray-400 hover:text-gray-600 transition-colors text-xs flex-shrink-0"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          {communityPosts.map((post, i) => (
-            <PostCard key={post.id} post={post} index={i} />
-          ))}
+
+          {filteredPosts.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-purple-50">
+              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-gray-600 font-medium">Koi post nahi mila</p>
+              <p className="text-sm text-gray-400 mt-1">"{search}" ke liye koi result nahi</p>
+              <button
+                onClick={() => setSearch('')}
+                className="mt-4 text-sm text-purple-600 hover:underline"
+              >
+                Search clear karo
+              </button>
+            </div>
+          ) : (
+            filteredPosts.map((post, i) => (
+              <PostCard key={post.id} post={post} index={i} />
+            ))
+          )}
         </div>
 
         {/* Sidebar */}
