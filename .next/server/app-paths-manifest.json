@@ -1,5 +1,7 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/tourism-stats/page": "app/tourism-stats/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/assistant/page": "app/assistant/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/plan/page": "app/plan/page.js",
+  "/api/chat/route": "app/api/chat/route.js"
 }
