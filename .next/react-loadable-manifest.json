@@ -1,20 +1,14 @@
 {
   "app/dashboard/page.tsx -> @/components/ui/IndiaMap": {
-    "id": 57373,
+    "id": "app/dashboard/page.tsx -> @/components/ui/IndiaMap",
     "files": [
-      "static/chunks/13.ce4c03ec46da7a72.js"
-    ]
-  },
-  "app/plan/page.tsx -> @/components/ui/IndiaMap": {
-    "id": 57373,
-    "files": [
-      "static/chunks/373.8c27763fffd6be1c.js"
+      "static/chunks/_app-pages-browser_src_components_ui_IndiaMap_tsx.js"
     ]
   },
   "components/ui/IndiaMap.tsx -> leaflet": {
-    "id": 77691,
+    "id": "components/ui/IndiaMap.tsx -> leaflet",
     "files": [
-      "static/chunks/d0deef33.48d820d4c497da28.js"
+      "static/chunks/_app-pages-browser_node_modules_leaflet_dist_leaflet-src_js.js"
     ]
   }
 }
