@@ -1,8 +1,11 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAppStore } from '@/store/useAppStore';
+import { useRewardsStore } from '@/store/useRewardsStore';
+import { useRouter } from 'next/navigation';
+import { RewardsWidget, SavingsBanner, GoldenBadge, DiscountBadge } from '@/components/ui/RewardsWidget';
 import {
   listings, guides, offbeatLocations, getAIRecommendations,
 } from '@/lib/explore-local-data';
@@ -11,7 +14,9 @@ import {
   Sparkles, Star, MapPin, Clock, Users, IndianRupee,
   Globe, Home, Utensils, Backpack, ShoppingBag, Car,
   Compass, X, ChevronRight, Phone, Calendar, Languages,
-  Award, Zap, Filter, Search, Heart, Share2
+  Award, Zap, Filter, Search, Heart, Share2, Trophy, Crown, Gift,
+  ThumbsUp, MessageSquare, CheckCircle2, AlertCircle, Loader2,
+  CreditCard, Wallet, Banknote, Smartphone
 } from 'lucide-react';
 
 // ─── CATEGORY CONFIG ───────────────────────────────────────────────────────────
@@ -42,6 +47,10 @@ function ListingCard({ item, onBook }: { item: Listing | Guide; onBook: (item: L
   const isGuide = item.category === 'guide';
   const guide   = isGuide ? (item as Guide) : null;
   const cat     = categories.find(c => c.id === item.category);
+  const { discount_percentage, user_tier, applyDiscount } = useRewardsStore();
+  const { discounted, saved: savedAmt, applied } = applyDiscount(item.price, item.category);
+  const isGoldenEligible = user_tier === 'Golden' && ['food', 'stay'].includes(item.category);
+  const effectivePct = isGoldenEligible ? 25 : (applied ? discount_percentage : 0);
 
   return (
     <motion.div
@@ -120,8 +129,23 @@ function ListingCard({ item, onBook }: { item: Listing | Guide; onBook: (item: L
         {/* Price + CTA */}
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-lg font-extrabold text-gray-800">₹{item.price.toLocaleString()}</span>
-            <span className="text-xs text-gray-400 ml-1">/{item.pricing_type}</span>
+            {applied && effectivePct > 0 ? (
+              <div>
+                <span className="text-xs text-gray-400 line-through">₹{item.price.toLocaleString()}</span>
+                <span className={`text-lg font-extrabold ml-1 ${isGoldenEligible ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  ₹{discounted.toLocaleString()}
+                </span>
+                <span className="text-xs text-gray-400 ml-1">/{item.pricing_type}</span>
+                <p className={`text-xs font-semibold ${isGoldenEligible ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  {isGoldenEligible ? '👑' : '🎁'} You save ₹{savedAmt.toLocaleString()} ({effectivePct}% off)
+                </p>
+              </div>
+            ) : (
+              <div>
+                <span className="text-lg font-extrabold text-gray-800">₹{item.price.toLocaleString()}</span>
+                <span className="text-xs text-gray-400 ml-1">/{item.pricing_type}</span>
+              </div>
+            )}
           </div>
           <motion.button
             whileHover={{ scale: 1.04 }}
@@ -192,15 +216,53 @@ function BookingModal({ item, onClose, onConfirm }: {
   onClose: () => void;
   onConfirm: (item: Listing | Guide, date: string, note: string) => void;
 }) {
-  const [date, setDate]   = useState('');
-  const [note, setNote]   = useState('');
-  const [done, setDone]   = useState(false);
+  const [date, setDate]         = useState('');
+  const [note, setNote]         = useState('');
+  const [done, setDone]         = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [bookingRef, setBookingRef] = useState('');
+  const [avail, setAvail] = useState<{ available: boolean; slots_left: number; next_available?: string } | null>(null);
+  const [payMethod, setPayMethod] = useState<'upi' | 'card' | 'cash' | 'wallet'>('upi');
   const isGuide = item.category === 'guide';
   const guide   = isGuide ? (item as Guide) : null;
+  const { applyDiscount, user_tier } = useRewardsStore();
+  const { discounted, saved: savedAmt, applied } = applyDiscount(item.price, item.category);
+  const isGoldenEligible = user_tier === 'Golden' && ['food', 'stay'].includes(item.category);
 
-  function handleConfirm() {
-    onConfirm(item, date, note);
-    setDone(true);
+  // Check availability when date changes
+  useEffect(() => {
+    if (!date) { setAvail(null); return; }
+    fetch(`/api/explore/availability?listingId=${item.id}&date=${date}`)
+      .then(r => r.json())
+      .then(j => setAvail(j.data))
+      .catch(() => {});
+  }, [date, item.id]);
+
+  const router = useRouter();
+
+  async function handleConfirm() {
+    if (!date) return;
+    setLoading(true);
+    setApiError('');
+    try {
+      const params = new URLSearchParams({
+        listingId: item.id,
+        title:     item.title,
+        category:  item.category,
+        location:  item.location,
+        price:     String(item.price),
+        date,
+        pay:       payMethod,
+        note,
+      });
+      onClose();
+      router.push(`/invoice?${params.toString()}`);
+    } catch {
+      setApiError('Navigation failed — please try again');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -228,7 +290,8 @@ function BookingModal({ item, onClose, onConfirm }: {
             <p className="text-gray-500 text-sm mb-1">
               <strong>{isGuide ? (item as Guide).name : item.title}</strong> booked successfully
             </p>
-            <p className="text-gray-400 text-xs mb-6">Ref: TN-{Date.now().toString().slice(-6)}</p>
+            <p className="text-gray-400 text-xs mb-1">Ref: <span className="font-mono font-bold text-purple-600">{bookingRef}</span></p>
+            <p className="text-gray-400 text-xs mb-6">Confirmation SMS/email bheja jayega</p>
             <button onClick={onClose}
               className="px-6 py-2.5 text-white rounded-xl font-semibold text-sm"
               style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}>
@@ -263,6 +326,21 @@ function BookingModal({ item, onClose, onConfirm }: {
                 <span className="font-semibold text-purple-600">₹{item.price.toLocaleString()}/{item.pricing_type}</span>
               </div>
 
+              {/* Discount row */}
+              {applied && (
+                <div className={`flex items-center gap-2 rounded-xl p-3 mb-4 ${isGoldenEligible ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+                  <span className="text-lg">{isGoldenEligible ? '👑' : '🎁'}</span>
+                  <div className="flex-1">
+                    <p className={`text-xs font-bold ${isGoldenEligible ? 'text-amber-800' : 'text-emerald-800'}`}>
+                      {isGoldenEligible ? 'Golden Traveler Discount Applied!' : 'Your Rewards Discount Applied!'}
+                    </p>
+                    <p className={`text-xs ${isGoldenEligible ? 'text-amber-700' : 'text-emerald-700'}`}>
+                      You save <strong>₹{savedAmt.toLocaleString()}</strong> — Pay only <strong>₹{discounted.toLocaleString()}</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {guide && (
                 <div className="bg-purple-50 rounded-2xl p-3 mb-4 space-y-1.5">
                   <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -284,7 +362,32 @@ function BookingModal({ item, onClose, onConfirm }: {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Date</label>
                   <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-purple-500" />
+                  {avail && date && (
+                    <p className={`text-xs mt-1 flex items-center gap-1 ${avail.available ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {avail.available
+                        ? <><CheckCircle2 className="w-3 h-3" />{avail.slots_left} slot{avail.slots_left !== 1 ? 's' : ''} available</>
+                        : <><AlertCircle className="w-3 h-3" />Fully booked — next available: {avail.next_available}</>}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Payment Method</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {([
+                      { id: 'upi',    icon: Smartphone, label: 'UPI'    },
+                      { id: 'card',   icon: CreditCard, label: 'Card'   },
+                      { id: 'wallet', icon: Wallet,     label: 'Wallet' },
+                      { id: 'cash',   icon: Banknote,   label: 'Cash'   },
+                    ] as const).map(pm => (
+                      <button key={pm.id} onClick={() => setPayMethod(pm.id)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                          payMethod === pm.id ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-500 hover:border-purple-300'}`}>
+                        <pm.icon className="w-4 h-4" />{pm.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Special Request (optional)</label>
@@ -294,15 +397,23 @@ function BookingModal({ item, onClose, onConfirm }: {
                 </div>
               </div>
 
+              {apiError && (
+                <p className="text-xs text-red-500 mb-3 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />{apiError}
+                </p>
+              )}
+
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleConfirm}
-                disabled={!date}
-                className="w-full py-3 text-white font-semibold rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                disabled={!date || loading || (avail !== null && !avail.available)}
+                className="w-full py-3 text-white font-semibold rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}
               >
-                {isGuide ? '🧭 Confirm Guide Booking' : '✅ Confirm Booking'}
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Booking ho raha hai...</>
+                  : isGuide ? '🧭 Confirm Guide Booking' : '✅ Confirm Booking'}
               </motion.button>
             </div>
           </>
@@ -391,12 +502,15 @@ function OffbeatModal({ loc, onClose, onBook }: {
 
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function ExploreLocalPage() {
-  const { tripForm } = useAppStore();
+  const { tripForm, user } = useAppStore();
+  const rewards = useRewardsStore();
   const [activeCategory, setActiveCategory] = useState<ListingCategory | 'all'>('all');
   const [search, setSearch]                 = useState('');
   const [bookingItem, setBookingItem]       = useState<Listing | Guide | null>(null);
   const [offbeatItem, setOffbeatItem]       = useState<OffbeatLocation | null>(null);
   const [toast, setToast]                   = useState('');
+
+  const isGolden = rewards.user_tier === 'Golden';
 
   // AI preferences from tripForm
   const prefs: TripPreferences = {
@@ -422,8 +536,20 @@ export default function ExploreLocalPage() {
   }
 
   function handleConfirmBooking(item: Listing | Guide, date: string, note: string) {
-    setToast(`✅ ${item.category === 'guide' ? (item as Guide).name : item.title} booked for ${date}!`);
-    setTimeout(() => setToast(''), 4000);
+    // Add trip to rewards system (simulate 200km for demo)
+    const dist = 150 + Math.floor(Math.random() * 200);
+    const result = rewards.addTrip({
+      destination: item.location,
+      distance: dist,
+      total_amount: item.price,
+      completed: true,
+    });
+    const name = item.category === 'guide' ? (item as Guide).name : item.title;
+    let msg = `✅ ${name} booked for ${date}!`;
+    if (result.discountGained > 0) msg += ` +${result.discountGained}% discount earned!`;
+    if (result.newTier === 'Golden') msg = `👑 Golden Status Unlocked! ${msg}`;
+    setToast(msg);
+    setTimeout(() => setToast(''), 5000);
   }
 
   return (
@@ -479,6 +605,53 @@ export default function ExploreLocalPage() {
             <p className="text-white/80 text-sm max-w-lg">
               Authentic stays, local food, expert guides, and offbeat destinations — all handpicked by AI for your travel style.
             </p>
+          </div>
+        </div>
+
+        {/* ── SAVINGS BANNER ── */}
+        <SavingsBanner />
+
+        {/* ── REWARDS + PROFILE ROW ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Rewards widget */}
+          <div className="lg:col-span-2">
+            <RewardsWidget />
+          </div>
+          {/* Profile card */}
+          <div className={`rounded-3xl p-5 border flex flex-col justify-between ${
+            isGolden ? 'border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50' : 'border-purple-100 bg-white'
+          } shadow-sm`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="relative">
+                <img src={user?.avatar} alt={user?.name}
+                  className={`w-14 h-14 rounded-2xl object-cover ring-4 ${isGolden ? 'ring-amber-300' : 'ring-purple-100'}`} />
+                {isGolden && (
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center text-xs">
+                    👑
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="font-bold text-gray-800">{user?.name}</p>
+                <p className="text-xs text-gray-500">{user?.location}</p>
+                {isGolden
+                  ? <GoldenBadge size="sm" />
+                  : <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Normal Traveler</span>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                { label: 'Distance Travelled', value: `${rewards.total_distance_travelled.toLocaleString()} km`, color: 'text-purple-600' },
+                { label: 'Trips Completed',    value: rewards.total_trips.toString(),                            color: 'text-blue-600'   },
+                { label: 'Reward Points',      value: rewards.reward_points.toLocaleString(),                   color: 'text-amber-600'  },
+                { label: 'Current Discount',   value: `${rewards.discount_percentage}%`,                        color: 'text-emerald-600'},
+              ].map(row => (
+                <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                  <span className="text-xs text-gray-500">{row.label}</span>
+                  <span className={`text-sm font-bold ${row.color}`}>{row.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

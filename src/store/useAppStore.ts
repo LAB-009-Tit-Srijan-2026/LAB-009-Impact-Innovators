@@ -57,16 +57,8 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      user: {
-        id: 'u1',
-        name: 'Rahul Sharma',
-        email: 'rahul@tripnexus.in',
-        avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-        location: 'Delhi, India',
-        tripsCount: 14,
-        statesVisited: 18,
-      },
-      isAuthenticated: true,
+      user: null,
+      isAuthenticated: false,
       setUser: (user) => set({ user }),
       setAuthenticated: (val) => set({ isAuthenticated: val }),
 
@@ -140,6 +132,34 @@ export const useAppStore = create<AppState>()(
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
     }),
-    { name: 'tripnexus-india-store', partialize: (state) => ({ favorites: state.favorites, theme: state.theme }) }
+    { name: 'tripnexus-india-store', partialize: (state) => ({ favorites: state.favorites, theme: state.theme, isAuthenticated: state.isAuthenticated, user: state.user }) }
   )
 );
+
+// ─── AUTH HELPERS (used by login/signup pages) ─────────────────────────────────
+export async function loginUser(email: string, password: string) {
+  const res  = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', email, password }),
+  });
+  return res.json();
+}
+
+export async function signupUser(name: string, email: string, password: string, location?: string, gender?: string) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'signup', name, email, password, location, gender }),
+  });
+  return res.json();
+}
+
+export async function googleAuth(name: string, email: string, avatar?: string) {
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'google', name, email, avatar }),
+  });
+  return res.json();
+}

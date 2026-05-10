@@ -13,9 +13,26 @@ export function TripPlanForm() {
   const [loading, setLoading] = useState(false);
 
   const handlePlan = async () => {
+    if (!tripForm.source && !tripForm.destination) {
+      router.push('/plan');
+      return;
+    }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 800));
     setLoading(false);
+    // Build a real prompt and send to AI chat
+    const prompt = [
+      tripForm.destination ? `${tripForm.destination} ke liye trip plan karo.` : 'Mujhe ek India trip plan karo.',
+      `Duration: ${tripForm.duration} din`,
+      `Budget: ₹${tripForm.budget[0].toLocaleString()} – ₹${tripForm.budget[1].toLocaleString()} per person`,
+      `Travelers: ${tripForm.travelers} log`,
+      `Trip Type: ${tripForm.type}`,
+      tripForm.source ? `Departure: ${tripForm.source}` : '',
+      'Kripya day-by-day itinerary, hotel suggestions, aur budget breakdown do.',
+    ].filter(Boolean).join('\n');
+    // Add to chat store so AI Dost picks it up
+    const { addChatMessage } = useAppStore.getState();
+    addChatMessage({ id: Date.now().toString(), role: 'user', content: prompt, timestamp: new Date() });
     router.push('/assistant');
   };
 

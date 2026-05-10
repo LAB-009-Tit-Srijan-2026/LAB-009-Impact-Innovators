@@ -22,7 +22,12 @@ const severityConfig = {
 
 function AlertCard({ alert, index }: { alert: any; index: number }) {
   const [expanded, setExpanded] = useState(false);
+  const [doneActions, setDoneActions] = useState<string[]>([]);
   const config = severityConfig[alert.severity as keyof typeof severityConfig];
+
+  function handleAction(action: string) {
+    setDoneActions(prev => prev.includes(action) ? prev.filter(a => a !== action) : [...prev, action]);
+  }
 
   return (
     <motion.div
@@ -79,9 +84,16 @@ function AlertCard({ alert, index }: { alert: any; index: number }) {
                 <p className="text-xs font-semibold text-gray-600 mb-2">Kya Karna Chahiye:</p>
                 <div className="flex flex-wrap gap-2">
                   {alert.actions.map((action: string) => (
-                    <button key={action} className="flex items-center gap-1.5 text-xs bg-white/80 border border-current/20 text-gray-700 px-3 py-1.5 rounded-xl hover:bg-white transition-colors font-medium">
-                      <CheckCircle className="w-3 h-3 text-purple-500" />
+                    <button key={action}
+                      onClick={() => handleAction(action)}
+                      className={`flex items-center gap-1.5 text-xs border px-3 py-1.5 rounded-xl transition-colors font-medium ${
+                        doneActions.includes(action)
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                          : 'bg-white/80 border-current/20 text-gray-700 hover:bg-white'
+                      }`}>
+                      <CheckCircle className={`w-3 h-3 ${doneActions.includes(action) ? 'text-emerald-500' : 'text-purple-500'}`} />
                       {action}
+                      {doneActions.includes(action) && <span className="text-emerald-600">✓</span>}
                     </button>
                   ))}
                 </div>

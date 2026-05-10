@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 
 export function Topbar() {
-  const { user, notifications, markAllRead, theme, toggleTheme, sidebarOpen } = useAppStore();
+  const { user, notifications, markAllRead, theme, toggleTheme, sidebarOpen, setUser, setAuthenticated } = useAppStore();
   const [showNotifs, setShowNotifs]   = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [time, setTime]               = useState(new Date());
@@ -227,11 +227,23 @@ export function Topbar() {
                 </div>
               </div>
               <div className="py-1">
-                {['Profile', 'Settings', 'Help', 'Sign Out'].map((item) => (
-                  <button key={item} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 transition-colors">
+                {['Profile', 'Settings', 'Help'].map((item) => (
+                  <button key={item}
+                    onClick={() => { setShowProfile(false); router.push(`/${item.toLowerCase()}`); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 transition-colors">
                     {item}
                   </button>
                 ))}
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    setUser(null);
+                    setAuthenticated(false);
+                    router.replace('/login');
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium border-t border-gray-50 mt-1">
+                  🚪 Sign Out
+                </button>
               </div>
             </motion.div>
           )}
