@@ -227,11 +227,16 @@ export function Topbar() {
                 </div>
               </div>
               <div className="py-1">
-                {['Profile', 'Settings', 'Help'].map((item) => (
-                  <button key={item}
-                    onClick={() => { setShowProfile(false); router.push(`/${item.toLowerCase()}`); }}
+                {[
+                  { label: '👤 Profile',   href: '/settings' },
+                  { label: '⚙️ Settings',  href: '/settings' },
+                  { label: '✈️ My Trips',  href: '/trips'    },
+                  { label: '📋 Bookings',  href: '/bookings' },
+                ].map((item) => (
+                  <button key={item.label}
+                    onClick={() => { setShowProfile(false); router.push(item.href); }}
                     className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 transition-colors">
-                    {item}
+                    {item.label}
                   </button>
                 ))}
                 <button

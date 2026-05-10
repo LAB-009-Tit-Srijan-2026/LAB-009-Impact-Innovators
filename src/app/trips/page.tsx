@@ -8,7 +8,7 @@ import { Calendar, Users, Clock, Share2, Edit, Download, Plus, MapPin, X, Check 
 import { useRouter } from 'next/navigation';
 
 const tabs = [
-  { id: 'upcoming', label: 'Aane Wali', emoji: '��' },
+  { id: 'upcoming', label: 'Aane Wali', emoji: '🔜' },
   { id: 'ongoing',  label: 'Chal Rahi', emoji: '✈️'  },
   { id: 'completed',label: 'Ho Gayi',   emoji: '✅'  },
 ];

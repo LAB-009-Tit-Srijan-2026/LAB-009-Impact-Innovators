@@ -56,25 +56,47 @@ export default function PlanPage() {
     if (step === 1 && !validateDates()) return;
     if (step < steps.length - 1) { setStep(step + 1); return; }
 
-    // Final step — generate AI itinerary
+    // Final step — build prompt and navigate to assistant with it
     setLoading(true);
     const destNames = selected.length > 0
       ? destinations.filter(d => selected.includes(d.id)).map(d => d.name).join(', ')
-      : 'India';
+      : 'India (best destination suggest karo)';
+
+    const selectedDests = selected.length > 0
+      ? destinations.filter(d => selected.includes(d.id))
+      : [];
+
+    const highlights = selectedDests.length > 0
+      ? selectedDests.map(d => `${d.name} (${d.state}, Best time: ${d.bestTime}, Budget: ₹${d.budget.toLocaleString()}/person)`).join('\n  - ')
+      : '';
+
     const prompt = [
-      `Mujhe ${destNames} ke liye ek detailed trip plan chahiye.`,
-      `Duration: ${tripForm.duration} din`,
-      `Budget: ${formatCurrencyFull(tripForm.budget[0])} – ${formatCurrencyFull(tripForm.budget[1])} per person`,
-      `Travelers: ${tripForm.travelers} log`,
-      `Trip Type: ${tripForm.type}`,
-      tripForm.source ? `Departure: ${tripForm.source}` : '',
-      startDate ? `Start Date: ${startDate}` : '',
-      prefs.length > 0 ? `Preferences: ${prefs.join(', ')}` : '',
-      `Kripya day-by-day itinerary, hotel suggestions, aur budget breakdown do.`,
+      `🗺️ Mujhe ek detailed trip plan chahiye:`,
+      ``,
+      `📍 Destination(s): ${destNames}`,
+      highlights ? `   - ${highlights}` : '',
+      `📅 Duration: ${tripForm.duration} din`,
+      startDate ? `🗓️ Travel Dates: ${startDate} se ${endDate || 'flexible'}` : '',
+      `💰 Budget: ${formatCurrencyFull(tripForm.budget[0])} – ${formatCurrencyFull(tripForm.budget[1])} per person`,
+      `👥 Travelers: ${tripForm.travelers} log`,
+      `🎒 Trip Type: ${tripForm.type}`,
+      tripForm.source ? `🚉 Departure City: ${tripForm.source}` : '',
+      prefs.length > 0 ? `❤️ Preferences: ${prefs.join(', ')}` : '',
+      ``,
+      `Kripya provide karo:`,
+      `1. Day-by-day itinerary (har din ke activities)`,
+      `2. Top hotel recommendations (budget ke hisaab se)`,
+      `3. Must-try local food`,
+      `4. Budget breakdown (travel + stay + food + activities)`,
+      `5. Pro tips aur best time to visit each place`,
     ].filter(Boolean).join('\n');
 
-    addChatMessage({ id: Date.now().toString(), role: 'user', content: prompt, timestamp: new Date() });
-    setTimeout(() => { setLoading(false); router.push('/assistant'); }, 800);
+    // Encode prompt and navigate — assistant page will auto-send it
+    const encoded = encodeURIComponent(prompt);
+    setTimeout(() => {
+      setLoading(false);
+      router.push(`/assistant?autoPrompt=${encoded}`);
+    }, 600);
   }
 
   return (

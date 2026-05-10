@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Clock, MapPin, Calendar, Hotel, Heart, ChevronRight, IndianRupee } from 'lucide-react';
 import { formatCurrencyFull } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
+import { useRouter } from 'next/navigation';
 
 interface Props {
   destination: any;
@@ -10,7 +11,8 @@ interface Props {
 }
 
 export function DestinationModal({ destination, onClose }: Props) {
-  const { favorites, toggleFavorite } = useAppStore();
+  const { favorites, toggleFavorite, setTripForm } = useAppStore();
+  const router = useRouter();
   const isFav = favorites.includes(destination.id);
 
   return (
@@ -148,17 +150,26 @@ export function DestinationModal({ destination, onClose }: Props) {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setTripForm({ destination: destination.name });
+                  onClose();
+                  router.push('/plan');
+                }}
                 className="flex-1 text-white font-semibold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}
               >
-                Abhi Book Karo <ChevronRight className="w-4 h-4" />
+                Trip Plan Karo <ChevronRight className="w-4 h-4" />
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 bg-white border border-purple-200 text-purple-700 font-semibold py-3 rounded-xl hover:bg-purple-50 transition-colors"
+                onClick={() => toggleFavorite(destination.id)}
+                className={`flex-1 border font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                  isFav ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-purple-200 text-purple-700 hover:bg-purple-50'
+                }`}
               >
-                Trip Mein Save Karo
+                <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500' : ''}`} />
+                {isFav ? 'Saved ✓' : 'Wishlist Mein Save Karo'}
               </motion.button>
             </div>
           </div>

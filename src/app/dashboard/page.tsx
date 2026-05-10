@@ -23,7 +23,7 @@ const IndiaMap = dynamic(() => import('@/components/ui/IndiaMap'), {
   ),
 });
 
-const filters = ['Sab', 'Heritage', 'Beach', 'Mountains', 'Nature', 'Spiritual', 'Adventure'];
+const filters = ['Sab', 'Heritage', 'Beach', 'Mountains', 'Nature', 'Spiritual', 'Adventure', 'Offbeat', 'Wildlife', 'Pilgrimage', 'Culture', 'Desert'];
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -54,8 +54,8 @@ function DashboardContent() {
       <HeroSection />
       <TripPlanForm />
 
-      {/* Destinations */}
-      <div className="mt-8">
+      {/* Recommended Destinations */}
+      <div className="mt-8" id="destinations-section">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <Compass className="w-5 h-5 text-purple-600" />

@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from 'ai/react';
+import { useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { suggestedPrompts } from '@/lib/dummy-data';
 import {
@@ -202,11 +203,13 @@ const quickActions = [
 ];
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
-export default function AssistantPage() {
+function AssistantContent() {
   const bottomRef    = useRef<HTMLDivElement>(null);
   const inputRef     = useRef<HTMLTextAreaElement>(null);
   const [showScroll, setShowScroll] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const autoSentRef  = useRef(false);
+  const searchParams = useSearchParams();
 
   const {
     messages, input, handleInputChange, handleSubmit,
@@ -219,6 +222,19 @@ export default function AssistantPage() {
       content: 'Namaste! 🙏 Main hoon aapka **AI Travel Dost**!\n\nIndia ke kisi bhi kone mein trip plan karna ho — Rajasthan ki haveliyan, Kerala ke backwaters, Ladakh ki pahaadiyan, ya Goa ke beaches — bas batao!\n\nMain aapko dunga:\n- Complete day-by-day itinerary\n- Budget breakdown in ₹\n- Best hotels & restaurants\n- Hidden gems & local tips\n\n**Kahan jaana hai? ✈️**',
     }],
   });
+
+  // Auto-send prompt from Plan page (via ?autoPrompt= URL param)
+  useEffect(() => {
+    const autoPrompt = searchParams.get('autoPrompt');
+    if (autoPrompt && !autoSentRef.current && !isLoading) {
+      autoSentRef.current = true;
+      const decoded = decodeURIComponent(autoPrompt);
+      // Small delay so chat is fully mounted
+      setTimeout(() => {
+        append({ role: 'user', content: decoded });
+      }, 400);
+    }
+  }, [searchParams, append, isLoading]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -454,5 +470,17 @@ export default function AssistantPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function AssistantPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" />
+      </div>
+    }>
+      <AssistantContent />
+    </Suspense>
   );
 }

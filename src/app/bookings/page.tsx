@@ -8,7 +8,7 @@ import { Hotel, Plane, Activity, Search, QrCode, Download, X, Star, Calendar, Us
 
 const tabs = [
   { id: 'all',      label: 'Sab',        emoji: '📋' },
-  { id: 'hotel',    label: 'Hotels',     emoji: '��' },
+  { id: 'hotel',    label: 'Hotels',     emoji: '🏨' },
   { id: 'flight',   label: 'Flights',    emoji: '✈️' },
   { id: 'activity', label: 'Activities', emoji: '🎯' },
 ];
