@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useRewardsStore } from '@/store/useRewardsStore';
+import { useBookingsStore } from '@/store/useBookingsStore';
+import { useAppStore } from '@/store/useAppStore';
+import { listings, guides } from '@/lib/explore-local-data';
 import {
   Receipt, Tag, Users, IndianRupee, CheckCircle2, AlertCircle,
   Loader2, ArrowRight, Ticket, Sparkles, X, Plus, Minus,
@@ -16,7 +19,9 @@ import { StarRating } from '@/components/ui/StarRating';
 function InvoiceContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
-  const { discount_percentage, user_tier } = useRewardsStore();
+  const { discount_percentage, user_tier, addTrip } = useRewardsStore();
+  const { addBooking } = useBookingsStore();
+  const { user, addNotification } = useAppStore();
 
   // From URL params (set by BookingModal before navigating here)
   const listingId    = searchParams.get('listingId') ?? '';
@@ -95,21 +100,62 @@ function InvoiceContent() {
   async function handlePay() {
     setPaying(true);
     try {
-      const res = await fetch('/api/explore/bookings', {
+      // Find listing image
+      const allListings = [...listings, ...guides] as any[];
+      const listing = allListings.find(l => l.id === listingId);
+      const listingImage = listing?.images?.[0] ?? '';
+
+      // Save to localStorage store (persists across reloads)
+      const booking = addBooking({
+        userId:          user?.id ?? 'demo',
+        listingId,
+        listingTitle,
+        listingCategory: listingCat,
+        listingLocation: listingLoc,
+        listingImage,
+        date,
+        note,
+        travelers,
+        splitCount:      travelers.length,
+        perPerson,
+        originalPrice:   price,
+        discountPct:     totalDiscPct,
+        couponCode:      couponValid ? couponCode : null,
+        finalPrice,
+        paymentMethod:   payMethod,
+        status:          'confirmed',
+      });
+
+      // Also call backend API (best-effort, not critical)
+      fetch('/api/explore/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo', listingId, date, note,
-          paymentMethod: payMethod,
-          discountPct: totalDiscPct,
-          couponCode: couponValid ? couponCode : undefined,
-          travelers,
+          userId: user?.id ?? 'demo', listingId, date, note,
+          paymentMethod: payMethod, discountPct: totalDiscPct,
+          couponCode: couponValid ? couponCode : undefined, travelers,
         }),
+      }).catch(() => {}); // ignore if server is cold
+
+      // Update rewards (simulate 200km trip)
+      addTrip({
+        destination: listingLoc || listingTitle,
+        distance: 150 + Math.floor(Math.random() * 200),
+        total_amount: finalPrice,
+        completed: true,
       });
-      const json = await res.json();
-      if (!json.success) { alert(json.error); return; }
-      setBookingId(json.data.id);
+
+      setBookingId(booking.id);
+
+      // Push notification to bell icon
+      addNotification({
+        message: `✅ Booking confirmed! ${listingTitle} — ${date} · Ref: ${booking.id.slice(-6).toUpperCase()}`,
+        type: 'booking',
+      });
+
       setPaid(true);
+    } catch (e: any) {
+      alert('Booking failed: ' + e.message);
     } finally {
       setPaying(false);
     }
@@ -135,14 +181,18 @@ function InvoiceContent() {
         <p className="text-gray-500 mb-1">Booking confirmed</p>
         <p className="text-xs text-gray-400 mb-2">Ref: <span className="font-mono font-bold text-purple-600">{bookingId}</span></p>
         <p className="text-sm text-gray-500 mb-8">Confirmation aapke email pe bhej di gayi hai</p>
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
           <button onClick={() => router.push(`/feedback?bookingId=${bookingId}&listingId=${listingId}&title=${encodeURIComponent(listingTitle)}`)}
             className="px-6 py-3 text-white rounded-2xl font-semibold text-sm shadow-lg flex items-center gap-2"
             style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}>
             <Sparkles className="w-4 h-4" /> Rate Your Experience
           </button>
+          <button onClick={() => router.push('/my-bookings')}
+            className="px-6 py-3 bg-white border border-purple-200 text-purple-700 rounded-2xl font-semibold text-sm hover:bg-purple-50 transition-colors">
+            📋 My Bookings
+          </button>
           <button onClick={() => router.push('/explore-local')}
-            className="px-6 py-3 bg-white border border-purple-200 text-gray-700 rounded-2xl font-semibold text-sm hover:bg-purple-50 transition-colors">
+            className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl font-semibold text-sm hover:bg-gray-50 transition-colors">
             Back to Explore
           </button>
         </div>

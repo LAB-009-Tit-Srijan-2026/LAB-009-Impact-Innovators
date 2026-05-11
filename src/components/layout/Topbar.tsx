@@ -231,7 +231,7 @@ export function Topbar() {
                   { label: '👤 Profile',   href: '/settings' },
                   { label: '⚙️ Settings',  href: '/settings' },
                   { label: '✈️ My Trips',  href: '/trips'    },
-                  { label: '📋 Bookings',  href: '/bookings' },
+                  { label: '📋 Bookings',  href: '/my-bookings' },
                 ].map((item) => (
                   <button key={item.label}
                     onClick={() => { setShowProfile(false); router.push(item.href); }}

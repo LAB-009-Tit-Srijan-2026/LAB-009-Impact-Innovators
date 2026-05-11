@@ -15,7 +15,7 @@ const navItems = [
   { href: '/assistant',     label: 'AI Dost',         icon: Bot,             emoji: '🤖' },
   { href: '/explore-local', label: 'Explore Local',   icon: Globe,           emoji: '🌍' },
   { href: '/trips',         label: 'Meri Trips',      icon: Briefcase,       emoji: '✈️' },
-  { href: '/bookings',      label: 'Bookings',        icon: CalendarCheck,   emoji: '📋' },
+  { href: '/my-bookings',   label: 'My Bookings',     icon: CalendarCheck,   emoji: '📋' },
   { href: '/alerts',        label: 'Alerts',          icon: Bell,            emoji: '🔔' },
   { href: '/community',     label: 'Community',       icon: Users,           emoji: '👥' },
   { href: '/intelligence',  label: 'Intelligence',    icon: Brain,           emoji: '🔮' },
